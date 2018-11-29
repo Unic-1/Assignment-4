@@ -8,6 +8,6 @@ Users details:
 
 User can log in and log out by creating and destroying a token
 
-When a user  is logged in, they cal get all the possible menu items and can check thier shopping cart with menu  items.
+When a user  is logged in, they can get all the possible menu items and can check thier shopping cart with menu  items.
 
 A logged in use can create an order and make a payment. The  user will receive confirmation email for the order.
