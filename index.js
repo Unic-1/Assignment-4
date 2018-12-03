@@ -24,7 +24,6 @@ var helper = require('./lib/helper');
 var app = {};
 
 app.httpServer = http.createServer(function (req, res) {
-    console.log("Http request");
     app.unifiedServer(req, res);
 });
 
