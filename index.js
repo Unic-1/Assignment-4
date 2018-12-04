@@ -111,7 +111,8 @@ app.httpsServer.listen(config.httpsPort, function () {
 
 
 app.router = {
-    'users': handler.users
+    'users': handler.users,
+    'token': handler.tokens
 }
 
 module.export = app;
