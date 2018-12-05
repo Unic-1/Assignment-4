@@ -50,7 +50,7 @@ app.unifiedServer = function (req, res) {
     var queryString = parseUrl.query;
 
     // get the header as an object
-    var header = req.header;
+    var header = req.headers;
 
     // If there is payload
     var decoder = new StringDecoder('utf8');
