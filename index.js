@@ -8,9 +8,7 @@ var http = require('http');
 var https = require('https');
 var fs = require('fs');
 var url = require('url');
-var {
-    StringDecoder
-} = require('string_decoder');
+var { StringDecoder } = require('string_decoder');
 var util = require('util');
 var debug = util.debuglog('server');
 
