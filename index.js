@@ -1,6 +1,6 @@
 /**
- * This is the entry point for the api
- * 
+ * This is the entry point for the `api`
+ *
  */
 
 // Dependencies
@@ -59,8 +59,12 @@ app.unifiedServer = function (req, res) {
     req.on('end', function () {
         buffer += decoder.end();
 
+        console.log('Path', finalPath);
         // Choose the handler this should go to. If one is not found go to notFound handler
         var chooseHandler = typeof (app.router[finalPath]) !== undefined ? app.router[finalPath] : handler.notFound;
+
+        // If the request is within the public directory, use the public handler instead
+        chooseHandler = finalPath.indexOf('public/') > -1 ? handler.public : chooseHandler;
 
         // Construct the data object to send
         var data = {
@@ -72,18 +76,52 @@ app.unifiedServer = function (req, res) {
         };
 
         // Route the request to the handler specified in the router
-        chooseHandler(data, function (statusCode, payload) {
+        chooseHandler(data, function (statusCode, payload, contentType) {
+            // Determine the type of response (fallback to JSON)
+            contentType = typeof (contentType) === 'string' ? contentType : 'json';
+
             // Use the status code called back by the handler,  or default to 200
             statusCode = typeof (statusCode) === 'number' ? statusCode : 200;
 
-            // Use the payload  called  back  by  theh handler, or  default to empty object
-            payload = typeof (payload) === 'object' ? payload : {};
-
             // Convert the payload to string
-            var payloadString = helper.parseObjectToString(payload);
+            var payloadString = '';
+
+            if (contentType === 'json') {
+                //Use the payload called back by the handler, or default to empty object
+                payload = typeof (payload) == 'object' ? payload : {};
+
+                // Convert the payload to a string
+                payloadString = JSON.stringify(payload);
+
+                res.setHeader('Content-Type', 'application/json');
+            }
+
+            if(contentType === 'html') {
+                res.setHeader('Contetnt-Type', 'text/html');
+                payloadString = typeof(payload)  === 'string' ? payload : '';
+            }
+            if(contentType === 'favicon') {
+                res.setHeader('Contetnt-Type', 'image/x-icon');
+                payloadString = typeof(payload)  != 'undefined' ? payload : '';
+            }
+            if(contentType === 'css') {
+                res.setHeader('Contetnt-Type', 'text/css');
+                payloadString = typeof(payload)  != 'undefined' ? payload : '';
+            }
+            if(contentType === 'png') {
+                res.setHeader('Contetnt-Type', 'image/png');
+                payloadString = typeof(payload)  != 'undefined' ? payload : '';
+            }
+            if(contentType === 'jpg') {
+                res.setHeader('Contetnt-Type', 'image/jpeg');
+                payloadString = typeof(payload)  != 'undefined' ? payload : '';
+            }
+            if(contentType === 'plain') {
+                res.setHeader('Contetnt-Type', 'text/plain');
+                payloadString = typeof(payload)  != 'undefined' ? payload : '';
+            }
 
             // Return the response
-            res.setHeader('Content-Type', 'application/json');
             res.writeHead(statusCode);
             res.end(payloadString);
 
@@ -118,7 +156,20 @@ app.router = {
     'order': handler.order,
     'orderList': handler.orderList,
     'login': handler.login,
-    'logout': handler.logout
+    'logout': handler.logout,
+    '': handler.index,
+    'account/create': handler.accoutnCreate,
+    'account/edit': handler.accountEdit,
+    'account/deleted': handler.accountDeleted,
+    'session/create': handler.sessionCreate,
+    'session/deleted': handler.sessionDeleted,
+    'cart/all': handler.checksList,
+    'cart/add': handler.checksCreate,
+    'cart/edit': handler.checksEdit,
+    'cart/deleted': handler.checksDeleted,
+    'order': handler.order,
+    'favicon.ico': handler.favicon,
+    'public': handler.public
 }
 
 module.export = app;
