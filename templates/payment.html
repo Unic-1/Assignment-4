@@ -1,0 +1,30 @@
+<h1>Account Settings</h1>
+
+<hr />
+
+<h2>Edit your account details</h2>
+
+<div class="formWrapper">
+    <h1>Your order details</h1>
+    <div id="userDetails">
+        <p><b>Name:</b> <span class="name"></span></p>
+        <p><b>Address:</b> <span class="address"></span></p>
+        <p><b>Phone:</b> <span class="email"></span></p>
+        <a class="cta green" href="account/edit">Edit</a>
+        <hr />
+    </div>
+    <table id="cartListTable">
+        <tr>
+            <th>Item</th>
+            <th>Quantity</th>
+            <th>Total</th>
+        </tr>
+    </table>
+    <form id="paymentForm" action="/pay" method="post">
+    <div class="formError"></div>
+        <input class="hiddenEmailInput" type="hidden" name="email" />
+        <div class="inputWrapper ctaWrapper">
+            <button type="submit" class="cta green">Place Order</button>
+        </div>
+    </form>
+</div>

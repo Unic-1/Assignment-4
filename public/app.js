@@ -101,6 +101,7 @@ app.logUserOut = function(redirectUser){
   // Set redirectUser to default to true
   redirectUser = typeof(redirectUser) == 'boolean' ? redirectUser : true;
 
+  console.log(app.config.sessionToken);
   // Get the current token id
   var tokenId = typeof(app.config.sessionToken.tokenId) == 'string' ? app.config.sessionToken.tokenId : false;
 
@@ -132,6 +133,7 @@ app.bindForms = function(){
         // Stop it from submitting
         e.preventDefault();
         var formId = this.id;
+        console.log('FORM ID', formId);
         var path = this.action;
         var method = this.method.toUpperCase();
 
@@ -159,7 +161,7 @@ app.bindForms = function(){
               method = valueOfElement;
             } else {
               // Create an payload field named "method" if the elements name is actually httpmethod
-              if(nameOfElement == 'httpmethod'){
+              if(nameOfElement == 'itemList'){
                 nameOfElement = 'method';
               }
               // Create an payload field named "id" if the elements name is actually uid
@@ -180,7 +182,6 @@ app.bindForms = function(){
           }
         }
 
-        console.log('Deleting user');
         // If the method is DELETE, the payload should be a queryStringObject instead
         var queryStringObject = method == 'DELETE' ? payload : {};
 
@@ -251,25 +252,29 @@ app.formResponseProcessor = function(formId,requestPayload,responsePayload){
   }
 
   // If forms saved successfully and they have success messages, show them
-  var formsWithSuccessMessages = ['accountEdit1', 'accountEdit2','checksEdit1'];
+  var formsWithSuccessMessages = ['cartEdit', 'accountEdit2','checksEdit1'];
   if(formsWithSuccessMessages.indexOf(formId) > -1){
     document.querySelector("#"+formId+" .formSuccess").style.display = 'block';
   }
 
   // If the user just deleted their account, redirect them to the account-delete page
   if(formId == 'accountEdit3'){
-    console.log('Logout 3');
     app.logUserOut(false);
     window.location = '/account/deleted';
   }
 
   // If the user just created a new check successfully, redirect back to the dashboard
-  if(formId == 'checksCreate'){
+  if(formId == 'cartCreate'){
     window.location = '/cart/all';
   }
 
   // If the user just deleted a check, redirect them to the dashboard
-  if(formId == 'checksEdit2'){
+  if(formId == 'cartDelete'){
+    window.location = '/cart/all';
+  }
+
+  // If the payment is made
+  if(formId == 'paymentForm') {
     window.location = '/cart/all';
   }
 
@@ -321,15 +326,16 @@ app.renewToken = function(callback){
   var currentToken = typeof(app.config.sessionToken) == 'object' ? app.config.sessionToken : false;
   if(currentToken){
     // Update the token with a new expiration
+    console.log('Token Id', currentToken.tokenId);
     var payload = {
-      'id' : currentToken.id,
+      'id' : currentToken.tokenId,
       'extend' : true,
     };
     app.client.request(undefined,'token','PUT',undefined,payload,function(statusCode,responsePayload){
       // Display an error on the form if needed
       if(statusCode == 200){
         // Get the new token details
-        var queryStringObject = {'id' : currentToken.id};
+        var queryStringObject = {'id' : currentToken.tokenId};
         app.client.request(undefined,'token','GET',queryStringObject,undefined,function(statusCode,responsePayload){
           // Display an error on the form if needed
           if(statusCode == 200){
@@ -362,14 +368,34 @@ app.loadDataOnPage = function(){
     app.loadAccountEditPage();
   }
 
+  // Logic for menu page
+  if(primaryClass == 'viewMenu') {
+    app.loadViewMenuPage();
+  }
+
   // Logic for dashboard page
   if(primaryClass == 'checksList'){
-    app.loadChecksListPage();
+    app.loadCartListPage();
+  }
+
+  // Logic for editItem page
+  if(primaryClass == 'editItem') {
+    app.loadCartEditPage();
   }
 
   // Logic for check details page
   if(primaryClass == 'checksEdit'){
-    app.loadChecksEditPage();
+    app.loadCartEditPage();
+  }
+
+  // Logic for order page
+  if(primaryClass == 'order') {
+    app.loadOrderListPage();
+  }
+
+  // Logic for payment page
+  if(primaryClass == 'payment') {
+    app.loadPaymentPage();
   }
 };
 
@@ -386,34 +412,42 @@ app.loadAccountEditPage = function(){
     app.client.request(undefined,'users','GET',queryStringObject,undefined,function(statusCode,responsePayload){
       if(statusCode == 200){
         // Put the data into the forms as values where needed
-        document.querySelector("#accountEdit1 .firstNameInput").value = responsePayload.firstName;
-        document.querySelector("#accountEdit1 .lastNameInput").value = responsePayload.lastName;
-        document.querySelector("#accountEdit1 .displayPhoneInput").value = responsePayload.phone;
+        document.querySelector("#accountEdit1 .firstNameInput").value = responsePayload.name;
+        document.querySelector("#accountEdit1 .lastNameInput").value = responsePayload.address;
+        document.querySelector("#accountEdit1 .displayPhoneInput").value = responsePayload.email;
 
         // Put the hidden phone field into both forms
         var hiddenPhoneInputs = document.querySelectorAll("input.hiddenPhoneNumberInput");
         for(var i = 0; i < hiddenPhoneInputs.length; i++){
-            hiddenPhoneInputs[i].value = responsePayload.phone;
+            hiddenPhoneInputs[i].value = responsePayload.email;
         }
 
       } else {
-        console.log('Logout unknown 1');
         // If the request comes back as something other than 200, log the user our (on the assumption that the api is temporarily down or the users token is bad)
         app.logUserOut();
       }
     });
   } else {
-    console.log('Logout unknown 2');
     app.logUserOut();
   }
 };
 
-// Load the dashboard page specifically
-app.loadChecksListPage = function(){
+// Load the cart page
+app.loadViewMenuPage = function() {
   // Get the phone number from the current token, or log the user out if none is there
-  console.log('Loading Check List Page');
   var email = typeof(app.config.sessionToken.email) == 'string' ? app.config.sessionToken.email : false;
-  console.log('Email', email);
+  if(email){
+    document.querySelector("#cartCreate .email").value = email;
+  } else {
+    app.logUserOut();
+  }
+}
+
+// Load the dashboard page specifically
+app.loadCartListPage = function(){
+  // Get the phone number from the current token, or log the user out if none is there
+  var email = typeof(app.config.sessionToken.email) == 'string' ? app.config.sessionToken.email : false;
+
   if(email){
     // Fetch the user data
     var queryStringObject = {
@@ -423,40 +457,27 @@ app.loadChecksListPage = function(){
       if(statusCode == 200){
 
         // Determine how many checks the user has
-        var allChecks = typeof(responsePayload.checks) == 'object' && responsePayload.checks instanceof Array && responsePayload.checks.length > 0 ? responsePayload.checks : [];
-        if(allChecks.length > 0){
+        var allChecks = typeof(responsePayload.cart) == 'object' && responsePayload.cart instanceof Object && Object.keys(responsePayload.cart).length > 0 ? responsePayload.cart : {};
+        if(Object.keys(allChecks).length > 0){
 
           // Show each created check as a new row in the table
-          allChecks.forEach(function(checkId){
-            // Get the data for the check
-            var newQueryStringObject = {
-              'id' : checkId
-            };
-            app.client.request(undefined,'api/checks','GET',newQueryStringObject,undefined,function(statusCode,responsePayload){
-              if(statusCode == 200){
-                var checkData = responsePayload;
-                // Make the check data into a table row
-                var table = document.getElementById("checksListTable");
-                var tr = table.insertRow(-1);
-                tr.classList.add('checkRow');
-                var td0 = tr.insertCell(0);
-                var td1 = tr.insertCell(1);
-                var td2 = tr.insertCell(2);
-                var td3 = tr.insertCell(3);
-                var td4 = tr.insertCell(4);
-                td0.innerHTML = responsePayload.method.toUpperCase();
-                td1.innerHTML = responsePayload.protocol+'://';
-                td2.innerHTML = responsePayload.url;
-                var state = typeof(responsePayload.state) == 'string' ? responsePayload.state : 'unknown';
-                td3.innerHTML = state;
-                td4.innerHTML = '<a href="/cart/edit?id='+responsePayload.id+'">View / Edit / Delete</a>';
-              } else {
-                console.log("Error trying to load check ID: ",checkId);
-              }
-            });
+          Object.keys(allChecks).forEach(function(itemName){
+            var cartObject = allChecks[itemName]
+            // Make the check data into a table row
+            var table = document.getElementById("cartListTable");
+            var tr = table.insertRow(-1);
+            tr.classList.add('checkRow');
+            var td0 = tr.insertCell(0);
+            var td1 = tr.insertCell(1);
+            var td2 = tr.insertCell(2);
+            var td3 = tr.insertCell(3);
+            td0.innerHTML = itemName;
+            td1.innerHTML = cartObject.quantity;
+            td2.innerHTML = cartObject.total;
+            td3.innerHTML = '<a href="/item/edit?item='+itemName.replace(/ /g, '_')+'&quantity='+cartObject.quantity+'">View / Edit / Delete</a>';
           });
 
-          if(allChecks.length < 5){
+          if(Object.keys(allChecks).length < 5){
             // Show the createCheck CTA
             document.getElementById("createCheckCTA").style.display = 'block';
           }
@@ -470,54 +491,160 @@ app.loadChecksListPage = function(){
 
         }
       } else {
-        console.log('Logout unknown 3');
         // If the request comes back as something other than 200, log the user our (on the assumption that the api is temporarily down or the users token is bad)
         app.logUserOut();
       }
     });
   } else {
-    console.log('Logout unknown 4');
+    app.logUserOut();
+  }
+};
+
+// Load the dashboard page specifically
+app.loadOrderListPage = function(){
+  // Get the phone number from the current token, or log the user out if none is there
+  var email = typeof(app.config.sessionToken.email) == 'string' ? app.config.sessionToken.email : false;
+
+  if(email){
+    // Fetch the user data
+    var queryStringObject = {
+      'email' : email
+    };
+    app.client.request(undefined,'orderList','GET',queryStringObject,undefined,function(statusCode,responsePayload){
+      if(statusCode == 200){
+        // console.log(responsePayload);
+        // Determine how many checks the user has
+        var allChecks = typeof(responsePayload) == 'object' && responsePayload instanceof Array && responsePayload.length > 0 ? responsePayload : [];
+        console.log(allChecks);
+        if(allChecks.length > 0){
+          // Show each created check as a new row in the table
+          allChecks.forEach(function(order){
+            console.log(order);
+            // Make the check data into a table row
+            var table = document.getElementById("orderListTable");
+            var tr = table.insertRow(-1);
+            tr.classList.add('checkRow');
+            var td0 = tr.insertCell(0);
+            var td1 = tr.insertCell(1);
+            var td2 = tr.insertCell(2);
+            var td3 = tr.insertCell(3);
+            var td4 = tr.insertCell(4);
+            td0.innerHTML = order.id;
+            td1.innerHTML = order.name;
+            td2.innerHTML = order.email;
+            td3.innerHTML = order.address;
+            var details = '';
+            Object.keys(order.item).forEach((itemName) => {
+              var obj = order.item[itemName];
+
+              details += `${itemName} x ${obj.quantity} : ${obj.total}<br>`;
+            });
+            td4.innerHTML = details;
+          });
+
+        } else {
+          // Show 'you have no checks' message
+          document.getElementById("noChecksMessage").style.display = 'table-row';
+
+          // Show the createCheck CTA
+          document.getElementById("createCheckCTA").style.display = 'block';
+
+        }
+      } else {
+        // If the request comes back as something other than 200, log the user our (on the assumption that the api is temporarily down or the users token is bad)
+        app.logUserOut();
+      }
+    });
+  } else {
+    app.logUserOut();
+  }
+};
+
+// Load the dashboard page specifically
+app.loadPaymentPage = function(){
+  // Get the phone number from the current token, or log the user out if none is there
+  var email = typeof(app.config.sessionToken.email) == 'string' ? app.config.sessionToken.email : false;
+
+  if(email){
+    // Fetch the user data
+    var queryStringObject = {
+      'email' : email
+    };
+    app.client.request(undefined,'users','GET',queryStringObject,undefined,function(statusCode,responsePayload){
+      if(statusCode == 200){
+        document.querySelector("#userDetails .name").innerHTML = responsePayload.name;
+        document.querySelector("#userDetails .address").innerHTML = responsePayload.address;
+        document.querySelector("#userDetails .email").innerHTML = responsePayload.email;
+
+        document.querySelector("#paymentForm .hiddenEmailInput").value = responsePayload.email;
+
+        // Determine how many checks the user has
+        var allChecks = typeof(responsePayload.cart) == 'object' && responsePayload.cart instanceof Object && Object.keys(responsePayload.cart).length > 0 ? responsePayload.cart : {};
+        if(Object.keys(allChecks).length > 0){
+          var sumTotal = 0;
+          // Show each created check as a new row in the table
+          Object.keys(allChecks).forEach(function(itemName){
+            var cartObject = allChecks[itemName]
+            // Make the check data into a table row
+            var table = document.getElementById("cartListTable");
+            var tr = table.insertRow(-1);
+            tr.classList.add('checkRow');
+            var td0 = tr.insertCell(0);
+            var td1 = tr.insertCell(1);
+            var td2 = tr.insertCell(2);
+            td0.innerHTML = itemName;
+            td1.innerHTML = cartObject.quantity;
+            td2.innerHTML = cartObject.total;
+            sumTotal += cartObject.total;
+          });
+          var table = document.getElementById("cartListTable");
+          var tr = table.insertRow(-1);
+          tr.classList.add('checkRow');
+          var td0 = tr.insertCell(0);
+          var td1 = tr.insertCell(1);
+          var td2 = tr.insertCell(2);
+          td1.innerHTML = "TOTAL:";
+          td2.innerHTML = sumTotal;
+
+        } else {
+          // Show 'you have no checks' message
+          document.getElementById("noChecksMessage").style.display = 'table-row';
+
+          // Show the createCheck CTA
+          document.getElementById("createCheckCTA").style.display = 'block';
+
+        }
+      } else {
+        // If the request comes back as something other than 200, log the user our (on the assumption that the api is temporarily down or the users token is bad)
+        app.logUserOut();
+      }
+    });
+  } else {
     app.logUserOut();
   }
 };
 
 
 // Load the checks edit page specifically
-app.loadChecksEditPage = function(){
+app.loadCartEditPage = function(){
+  console.log('Path',window.location.href);
   // Get the check id from the query string, if none is found then redirect back to dashboard
-  var id = typeof(window.location.href.split('=')[1]) == 'string' && window.location.href.split('=')[1].length > 0 ? window.location.href.split('=')[1] : false;
-  if(id){
-    // Fetch the check data
-    var queryStringObject = {
-      'id' : id
-    };
-    app.client.request(undefined,'api/checks','GET',queryStringObject,undefined,function(statusCode,responsePayload){
-      if(statusCode == 200){
+  var item = typeof(window.location.href.split('&')[0].split('=')[1]) == 'string' && window.location.href.split('&')[0].split('=')[1].length > 0 ? window.location.href.split('&')[0].split('=')[1].replace(/_/g, ' ') : false;
+  var email = typeof(app.config.sessionToken.email) == 'string' ? app.config.sessionToken.email : false;
+  var quantity =  parseInt(window.location.href.split('=')[2]) !== 'NaN' &&
+  window.location.href.split('=')[2] > 0 ? window.location.href.split('=')[2] : false;
 
-        // Put the hidden id field into both forms
-        var hiddenIdInputs = document.querySelectorAll("input.hiddenIdInput");
-        for(var i = 0; i < hiddenIdInputs.length; i++){
-            hiddenIdInputs[i].value = responsePayload.id;
-        }
-
-        // Put the data into the top form as values where needed
-        document.querySelector("#checksEdit1 .displayIdInput").value = responsePayload.id;
-        document.querySelector("#checksEdit1 .displayStateInput").value = responsePayload.state;
-        document.querySelector("#checksEdit1 .protocolInput").value = responsePayload.protocol;
-        document.querySelector("#checksEdit1 .urlInput").value = responsePayload.url;
-        document.querySelector("#checksEdit1 .methodInput").value = responsePayload.method;
-        document.querySelector("#checksEdit1 .timeoutInput").value = responsePayload.timeoutSeconds;
-        var successCodeCheckboxes = document.querySelectorAll("#checksEdit1 input.successCodesInput");
-        for(var i = 0; i < successCodeCheckboxes.length; i++){
-          if(responsePayload.successCodes.indexOf(parseInt(successCodeCheckboxes[i].value)) > -1){
-            successCodeCheckboxes[i].checked = true;
-          }
-        }
-      } else {
-        // If the request comes back as something other than 200, redirect back to dashboard
-        window.location = '/cart/all';
-      }
-    });
+  if(item && email && quantity){
+    var imageName = item.replace(/ /g, '_');
+    var img = document.getElementById('itemImage');
+    img.src = 'public/'+imageName+'.jpg';
+    // Put the data into the top form as values where needed
+    document.querySelector("#cartEdit .email").value = email;
+    document.querySelector("#cartEdit .itemName").value = item;
+    document.querySelector("#cartEdit .quantity").value = quantity;
+    document.querySelector("#itemList").value = item;
+    document.querySelector("#cartDelete .hiddenEmailInput").value = email;
+    document.querySelector("#cartDelete .hiddenIdInput").value = item;
   } else {
     window.location = '/cart/all';
   }
@@ -551,6 +678,27 @@ app.init = function(){
 
   // Load data on page
   app.loadDataOnPage();
+
+  // Bind on change event for itemList
+  document.getElementById('itemList').addEventListener('change', function(e, item) {
+    var itemName = typeof(this.value) == 'string' && this.value.length > 0 ? this.value : false;
+    var imageName = this.value.replace(/ /g, '_');
+
+    if(itemName) {
+      var img = document.getElementById('itemImage');
+      img.src = 'public/'+imageName+'.jpg';
+
+      var queryStringObject = {
+        itemName
+      };
+      app.client.request(undefined,'menu','GET',queryStringObject,undefined,function(statusCode,responsePayload){
+        if(statusCode === 200) {
+          document.getElementById('displayPrice').innerHTML = responsePayload.price;
+          document.querySelector("#cartCreate .itemName").value = itemName;
+        }
+      });
+    }
+  });
 
 };
 

@@ -1,0 +1,53 @@
+<h1>Create A Check</h1>
+<h2>Your check will run once per minute</h2>
+<a class="backButton" href="/cart/all">Back</a>
+<hr />
+
+<div class="formWrapper">
+    <div class="inputWrapper">
+        <div class="inputLabel">Item List</div>
+        <select name="itemList" id="itemList" disabled>
+            <option value="" disabled selected>Select your option</option>
+            <option value="Margherita">Margherita</option>
+            <option value="Double Cheese Margherita">Double Cheese Margherita</option>
+            <option value="Farm House">Farm House</option>
+            <option value="Peppy Paneer">Peppy Paneer</option>
+            <option value="Mexican Green Wave">Mexican Green Wave</option>
+            <option value="Deluxe Veggie">Deluxe Veggie</option>
+        </select>
+    </div>
+
+    <img id="itemImage">
+    <h2>Price: <span id="displayPrice"></span></h2>
+
+    <form id="cartEdit" action="/cart" method="PUT">
+        <input type="hidden" name="_method" value="PUT"/>
+        <div class="formError"></div>
+        <div class="formSuccess">Your Changes Have Been Saved</div>
+        <input class="email" type="hidden" name="email" value="" >
+        <input class="itemName" type="hidden" name="itemName" value="" />
+        <div class="inputWrapper">
+            <div class="inputLabel">Quantity</div>
+            <input class="quantity" type="number" name="quantity" placeholder="5" min="1" />
+        </div>
+
+        <div class="inputWrapper ctaWrapper">
+            <button type="submit" class="cta green">Add To Cart</button>
+        </div>
+    </form>
+</div>
+
+<hr />
+<h2>Delete The Check</h2>
+<div class="formWrapper">
+  <form id="cartDelete" action="/cart" method="DELETE">
+    <input type="hidden" name="_method" value="DELETE"/>
+    <div class="formError"></div>
+    <div class="warning">Warning: This action cannot be undone. Dont click this button on accident!</div>
+    <input class="hiddenEmailInput" type="hidden" name="email" />
+    <input class="hiddenIdInput" type="hidden" name="itemName" />
+    <div class="inputWrapper ctaWrapper">
+      <button type="submit" class="cta red">Delete Check</button>
+    </div>
+  </form>
+</div>

@@ -167,6 +167,10 @@ app.router = {
     'cart/add': handler.checksCreate,
     'cart/edit': handler.checksEdit,
     'cart/deleted': handler.checksDeleted,
+    'item/menu': handler.viewMenu,
+    'item/edit': handler.editItem,
+    'order/pay': handler.payment,
+    'order/all': handler.myorder,
     'order': handler.order,
     'favicon.ico': handler.favicon,
     'public': handler.public
