@@ -374,7 +374,7 @@ app.loadDataOnPage = function(){
   }
 
   // Logic for dashboard page
-  if(primaryClass == 'checksList'){
+  if(primaryClass == 'cartList'){
     app.loadCartListPage();
   }
 
@@ -383,7 +383,7 @@ app.loadDataOnPage = function(){
     app.loadCartEditPage();
   }
 
-  // Logic for check details page
+  // Logic for cart details page
   if(primaryClass == 'checksEdit'){
     app.loadCartEditPage();
   }
@@ -456,14 +456,14 @@ app.loadCartListPage = function(){
     app.client.request(undefined,'users','GET',queryStringObject,undefined,function(statusCode,responsePayload){
       if(statusCode == 200){
 
-        // Determine how many checks the user has
+        // Determine how many item the user has in the cart
         var allChecks = typeof(responsePayload.cart) == 'object' && responsePayload.cart instanceof Object && Object.keys(responsePayload.cart).length > 0 ? responsePayload.cart : {};
         if(Object.keys(allChecks).length > 0){
 
-          // Show each created check as a new row in the table
+          // Show each cart item as a new row in the table
           Object.keys(allChecks).forEach(function(itemName){
             var cartObject = allChecks[itemName]
-            // Make the check data into a table row
+            // Make the item data into a table row
             var table = document.getElementById("cartListTable");
             var tr = table.insertRow(-1);
             tr.classList.add('checkRow');
@@ -483,7 +483,7 @@ app.loadCartListPage = function(){
           }
 
         } else {
-          // Show 'you have no checks' message
+          // Show 'you have no item in the cart' message
           document.getElementById("noChecksMessage").style.display = 'table-row';
 
           // Show the createCheck CTA
@@ -512,15 +512,14 @@ app.loadOrderListPage = function(){
     };
     app.client.request(undefined,'orderList','GET',queryStringObject,undefined,function(statusCode,responsePayload){
       if(statusCode == 200){
-        // console.log(responsePayload);
-        // Determine how many checks the user has
+        // Determine how many item the user has in the cart
         var allChecks = typeof(responsePayload) == 'object' && responsePayload instanceof Array && responsePayload.length > 0 ? responsePayload : [];
         console.log(allChecks);
         if(allChecks.length > 0){
-          // Show each created check as a new row in the table
+          // Show each cart item as a new row in the table
           allChecks.forEach(function(order){
             console.log(order);
-            // Make the check data into a table row
+            // Make the cart data into a table row
             var table = document.getElementById("orderListTable");
             var tr = table.insertRow(-1);
             tr.classList.add('checkRow');
@@ -541,9 +540,11 @@ app.loadOrderListPage = function(){
             });
             td4.innerHTML = details;
           });
+          // Show the createCheck CTA
+          document.getElementById("createCheckCTA").style.display = 'block';
 
         } else {
-          // Show 'you have no checks' message
+          // Show 'you have no item in the cart' message
           document.getElementById("noChecksMessage").style.display = 'table-row';
 
           // Show the createCheck CTA
@@ -578,7 +579,7 @@ app.loadPaymentPage = function(){
 
         document.querySelector("#paymentForm .hiddenEmailInput").value = responsePayload.email;
 
-        // Determine how many checks the user has
+        // Determine how many item the user has in the cart
         var allChecks = typeof(responsePayload.cart) == 'object' && responsePayload.cart instanceof Object && Object.keys(responsePayload.cart).length > 0 ? responsePayload.cart : {};
         if(Object.keys(allChecks).length > 0){
           var sumTotal = 0;
@@ -607,7 +608,7 @@ app.loadPaymentPage = function(){
           td2.innerHTML = sumTotal;
 
         } else {
-          // Show 'you have no checks' message
+          // Show 'you have no item in the cart' message
           document.getElementById("noChecksMessage").style.display = 'table-row';
 
           // Show the createCheck CTA
@@ -625,9 +626,8 @@ app.loadPaymentPage = function(){
 };
 
 
-// Load the checks edit page specifically
+// Load the item edit page specifically
 app.loadCartEditPage = function(){
-  console.log('Path',window.location.href);
   // Get the check id from the query string, if none is found then redirect back to dashboard
   var item = typeof(window.location.href.split('&')[0].split('=')[1]) == 'string' && window.location.href.split('&')[0].split('=')[1].length > 0 ? window.location.href.split('&')[0].split('=')[1].replace(/_/g, ' ') : false;
   var email = typeof(app.config.sessionToken.email) == 'string' ? app.config.sessionToken.email : false;
