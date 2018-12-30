@@ -11,6 +11,7 @@ var url = require('url');
 var { StringDecoder } = require('string_decoder');
 var util = require('util');
 var debug = util.debuglog('server');
+var cli = require('./lib/cli');
 
 
 var config = require('./lib/config');
@@ -144,7 +145,9 @@ app.httpsServer.listen(config.httpsPort, function () {
     console.log('https server is listening on port ' + config.httpsPort);
 });
 
-
+setTimeout(function() {
+    cli.init();
+}, 50);
 
 app.router = {
     'users': handler.users,
